@@ -208,7 +208,7 @@
 
     let _longDivision = longDivision(dividend, divisor, showAnswer)
     let html = `<div class="problem">`;
-    html += `<div class="line">${boxify(quotient.toString(), quotient.toString().length, true)}</div>`;
+    html += `<div class="line">${boxify(quotient.toString(), quotient.toString().length, showAnswer)}</div>`;
     html += `<div class="dash-line-jj"></div>`;
     html += `<div class="line">${boxify(divisor.toString(), divisor.toString().length, true)}<div class="dash-line-ll">&nbsp;</div>${boxify(dividend.toString(), dividend.toString().length, true)}</div>`;
 
