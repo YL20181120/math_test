@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>三位数除以一位数竖式题（对齐修复）</title>
+  <style>
+    body {
+      font-family: "Courier New", monospace;
+      margin: 20px;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .problem {
+      border: 1px dashed #ccc;
+      padding: 10px;
+      font-size: 18px;
+      line-height: 1.6;
+      text-align: right;
+    }
+
+    .line {
+      white-space: pre;
+      font-family: "Courier New", monospace;
+      position: relative;
+    }
+
+    .box {
+      display: inline-block;
+      width: 26px;
+      height: 28px;
+      border: 1px solid #000;
+      margin: 1px;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 28px;
+      font-size: 18px;
+    }
+    .box-no-border {
+      display: inline-block;
+      width: 26px;
+      height: 28px;
+      margin: 1px;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 28px;
+      font-size: 18px;
+    }
+
+    .dash-line {
+      display: inline-block;
+      width: 26px;
+      height: 28px;
+      margin: 1px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .dash-line-jj {
+      display: inline-block;
+      width: 96px;
+      height: 3px;
+      background-color: black;
+      margin: 0;
+    }
+    .dash-line-ll {
+      display: inline-block;
+      width: 26px;
+      height: 30px;
+      position: relative;
+    }
+    .dash-line-ll::before {
+      content: '⟌';
+      display: inline-block;
+      width: 2px;
+      height: 50px;
+      position: absolute;
+      top: -23px;
+      left: 5px;
+      font-size: 44px;
+      color: black;
+    }
+
+    @media print {
+      .controls {
+        display: none;
+      }
+      .problem {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="controls">
+  <label>题目数量：
+    <input type="number" id="count" value="9" min="1" max="100">
+  </label>
+  <label>
+    <input type="checkbox" id="showAnswer"> 显示答案
+  </label>
+  <button onclick="generateProblems()">生成新题</button>
+  <button onclick="window.print()">打印/导出 PDF</button>
+</div>
+
+<div id="problems" class="grid"></div>
+
+<script>
+  function boxify(str, length, showAnswer = false) {
+    str = str.toString().padStart(length, ' ');
+    return [...str].map(c => `<span class="${c===' ' ? 'box-no-border' : 'box'}">${c !== ' ' && showAnswer ? c : '&nbsp;'}</span>`).join('');
+  }
+
+  function dashLine(length = 1) {
+    return '<span class="dash-line"> </span>'.repeat(length);
+  }
+
+  function longDivision(dividend, divisor, showAnswer) {
+    if (divisor === 0) throw new Error("Divisor cannot be zero");
+    if (dividend < 0 || divisor < 0) throw new Error("请输入正整数");
+
+    const dividendStr = dividend.toString();
+    let quotientDigits = [];
+    let remainder = 0;
+    let currentPosition = 0;
+    const steps = [];
+    let currentDigits = "";  // 用于记录当前处理的多位被除数
+
+    while (currentPosition < dividendStr.length) {
+      // 逐位添加数字，直到余数足够大
+      let found = false;
+      while (currentPosition < dividendStr.length && (remainder === 0 || remainder < divisor)) {
+        const digit = dividendStr[currentPosition];
+        currentDigits += digit;
+        remainder = remainder * 10 + parseInt(digit, 10);
+        currentPosition++;
+
+        if (remainder >= divisor) {
+          found = true;
+          break;
+        } else {
+          quotientDigits.push("0");
+        }
+      }
+
+      if (!found && remainder === 0) break;
+
+      // 执行除法步骤
+      const quotientDigit = Math.floor(remainder / divisor);
+      const product = quotientDigit * divisor;
+      const newRemainder = remainder - product;
+
+      steps.push({
+        currentDividend: remainder,
+        quotientDigit,
+        product,
+        currentPosition,
+        remainderAfter: newRemainder,
+        broughtDownDigits: currentDigits  // 记录被带下的所有数字
+      });
+
+      quotientDigits.push(quotientDigit.toString());
+      remainder = newRemainder;
+      currentDigits = "";  // 重置为余数的新值
+    }
+
+    // 生成最终结果
+    const quotient = parseInt(quotientDigits.join('') || '0', 10);
+
+    return {
+      quotient,
+      remainder,
+      steps,
+      toString() {
+        let output = `<div style="height: 5px"></div>`;
+        let workspace = "";
+        let currentDisplay = "";
+        steps.forEach(step => {
+          currentDisplay += step.broughtDownDigits;
+          let product = `-${step.product}` + " ".repeat(Math.abs(step.currentPosition - 3))
+          workspace += `<div class="line">${boxify(step.currentDividend.toString() + " ".repeat(Math.abs(step.currentPosition - 3)),  + " ".repeat(Math.abs(step.currentPosition - 3)).length, showAnswer)}</div>`;
+          workspace += `<div class="line product" style="padding-right: 0">${boxify(product, product.length, showAnswer)}</div>`;
+          workspace += `<div class="line">${'----'.repeat(3)}</div>`;
+          workspace += `<div class="line remainder" style="padding-right: 0">${boxify(step.remainderAfter.toString() + " ".repeat(Math.abs(step.currentPosition - 3)), step.remainderAfter.toString().length, showAnswer)}</div>`;
+        });
+
+        return output + workspace;
+      }
+    };
+  }
+
+  function generateDivisionProblem(showAnswer = false) {
+    let divisor, quotient, dividend;
+
+    do {
+      divisor = Math.floor(Math.random() * 8) + 2;
+      quotient = Math.floor(Math.random() * 90) + 10;
+      dividend = divisor * quotient;
+    } while (dividend > 999 || dividend < 100);
+
+    let _longDivision = longDivision(dividend, divisor, showAnswer)
+    let html = `<div class="problem">`;
+    html += `<div class="line">${boxify(quotient.toString(), quotient.toString().length, true)}</div>`;
+    html += `<div class="dash-line-jj"></div>`;
+    html += `<div class="line">${boxify(divisor.toString(), divisor.toString().length, true)}<div class="dash-line-ll">&nbsp;</div>${boxify(dividend.toString(), dividend.toString().length, true)}</div>`;
+
+    html += _longDivision.toString()
+
+    html += `</div>`;
+    return html;
+  }
+
+  function generateProblems() {
+    const container = document.getElementById("problems");
+    const count = parseInt(document.getElementById("count").value);
+    const showAnswer = document.getElementById("showAnswer").checked;
+    container.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+      container.innerHTML += generateDivisionProblem(showAnswer);
+    }
+  }
+
+  generateProblems();
+</script>
+
+</body>
+</html>
